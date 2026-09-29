@@ -1,7 +1,32 @@
-function fimf_plot_vsr(sitename, z_all, all_bed_z, v_all, all_int_vel, v_bed_comb, z_bed_comb, all_bed_vel, v_all_se, ind_fit, q_best, q_se, p_best, p_best_se, all_ampCor_mean, mean_ampCor, std_ampCor, drnf_artefacts, ylim_val, ytick_dist)
-    % Dedicated plotting function (Full extent line fits & purple cross for bed mean)
+function [vsr_lin, vsr_lin_se, vsr_quad, vsr_quad_se] = fimf_plot_vsr(sitename, z_all, all_bed_z, v_all, all_int_vel, v_bed_comb, z_bed_comb, all_bed_vel, v_all_se, ind_fit, q_best, q_se, p_best, p_best_se, all_ampCor_mean, mean_ampCor, std_ampCor, drnf_artefacts, ylim_val, ytick_dist, plot_results, hax)
     
-    [hax,plotwidth] = ap_sub_sub(2,1,3,10,0.25,0);
+    %% Compute VSR at Bed Depth (z_bed_comb) mirroring the plotting bounds calculation[cite: 18]
+    
+    % Quadratic Evaluation at Bed Depth
+    vsr_quad = ct_tide_compute_quadratic(z_bed_comb, q_best); 
+    q_bound = q_best + q_se;
+    yQL_bed = ct_tide_compute_quadratic(z_bed_comb, q_bound);
+    vsr_quad_se = abs(yQL_bed - vsr_quad);
+
+    % Linear Evaluation at Bed Depth
+    vsr_lin = p_best(1)*z_bed_comb + p_best(2); 
+    pL = p_best + p_best_se; 
+    yLL_bed = pL(1)*z_bed_comb + pL(2); 
+    vsr_lin_se = abs(yLL_bed - vsr_lin);
+    
+    % Break early if no plot requested
+    if ~plot_results
+        return;
+    end
+    
+    % Handle axes reuse vs creation
+    if isempty(hax)
+        [hax,~] = ap_sub_sub(2,1,3,10,0.25,0);
+    else
+        % Clear existing axes for overwriting (sliding window animation)
+        cla(hax(1)); 
+        cla(hax(2));
+    end
     
     % Weights for Ftest
     w = 1./v_all_se;
@@ -9,30 +34,31 @@ function fimf_plot_vsr(sitename, z_all, all_bed_z, v_all, all_int_vel, v_bed_com
 
     %% hax(1): Velocity Fits (Top Plot)
     set(gcf,'CurrentAxes',hax(1))
+    hold on;
     
     % Separate indices into used vs not used
     ind_not_fit = setdiff(1:length(z_all), ind_fit);
     
     % 1. Plot ALL individual internal velocity estimates across frequencies
     for k = 1:size(all_int_vel, 1)
-        plot(all_int_vel(k, ind_not_fit), z_all(ind_not_fit), '.', 'color', [0.9 0.8 0]); hold on
-        plot(all_int_vel(k, ind_fit), z_all(ind_fit), '.', 'color', [0.5 0.8 1]); hold on
+        plot(all_int_vel(k, ind_not_fit), z_all(ind_not_fit), '.', 'color', [0.9 0.8 0]);
+        plot(all_int_vel(k, ind_fit), z_all(ind_fit), '.', 'color', [0.5 0.8 1]);
     end
     
     % Plot ALL individual basal velocity estimates at their respective ranges
     if ~isempty(all_bed_vel) && ~isempty(all_bed_z)
         for k = 1:size(all_bed_vel, 1)
-            plot(all_bed_vel(k), all_bed_z(k), '.', 'color', [0.8 0.6 1]); hold on % Light purple
+            plot(all_bed_vel(k), all_bed_z(k), '.', 'color', [0.8 0.6 1]); % Light purple
         end
     end
     
     % 2. Plot MEAN/MEDIAN velocity estimates 
-    plot(v_all(ind_not_fit), z_all(ind_not_fit), '.', 'color', [0.9 0.4 0], 'MarkerSize', 10); hold on
-    plot(v_all(ind_fit), z_all(ind_fit), '.', 'color', [0 0 0.5], 'MarkerSize', 10); hold on
+    plot(v_all(ind_not_fit), z_all(ind_not_fit), '.', 'color', [0.9 0.4 0], 'MarkerSize', 10);
+    plot(v_all(ind_fit), z_all(ind_fit), '.', 'color', [0 0 0.5], 'MarkerSize', 10);
     
     % Basal mean/median plotted as a purple cross (+)
     if ~isempty(v_bed_comb) && ~isempty(z_bed_comb)
-        plot(v_bed_comb, z_bed_comb, '+', 'color', [0.5 0 0.5], 'LineWidth', 1.5, 'MarkerSize', 8); hold on 
+        plot(v_bed_comb, z_bed_comb, '+', 'color', [0.5 0 0.5], 'LineWidth', 1.5, 'MarkerSize', 8); 
     end
 
     % --- Extended depth vector spanning the full plotting extent for fits ---
@@ -42,15 +68,15 @@ function fimf_plot_vsr(sitename, z_all, all_bed_z, v_all, all_int_vel, v_bed_com
     q = q_best + q_se; yQL = ct_tide_compute_quadratic(z_full, q); 
     q = q_best - q_se; yQU = ct_tide_compute_quadratic(z_full, q); 
     yQ = ct_tide_compute_quadratic(z_full, q_best); 
-    patch([yQL' fliplr(yQU')], [z_full' fliplr(z_full')], 'k', 'Facealpha', 0.2, 'Edgecolor', 'none'); hold on
-    plot(yQ, z_full, 'k', 'LineWidth', 1); hold on
+    patch([yQL' fliplr(yQU')], [z_full' fliplr(z_full')], 'k', 'Facealpha', 0.2, 'Edgecolor', 'none');
+    plot(yQ, z_full, 'k', 'LineWidth', 1);
 
     % Apply Linear Function over full extent
     yL = p_best(1)*z_full + p_best(2); 
     pU = p_best - p_best_se; yLU = pU(1)*z_full + pU(2); 
     pL = p_best + p_best_se; yLL = pL(1)*z_full + pL(2); 
-    patch([yLL' fliplr(yLU')], [z_full' fliplr(z_full')], 'r', 'Facealpha', 0.2, 'Edgecolor', 'none'); hold on
-    plot(yL, z_full, 'r', 'LineWidth', 1); hold on
+    patch([yLL' fliplr(yLU')], [z_full' fliplr(z_full')], 'r', 'Facealpha', 0.2, 'Edgecolor', 'none');
+    plot(yL, z_full, 'r', 'LineWidth', 1);
     xlim([-2.5 6]); xlabel('vel (m a^{-1})');
     
     % Calculate and display Ftest values
@@ -60,7 +86,7 @@ function fimf_plot_vsr(sitename, z_all, all_bed_z, v_all, all_int_vel, v_bed_com
         y_quad_fit = ct_tide_compute_quadratic(z_all(ind_fit), q_best);
         w_fit = w(ind_fit);
         
-        [dof, faj, ftab] = tg_rev_Ftest_weighted(y_data, y_lin_fit, y_quad_fit, w_fit);
+        [~, faj, ftab] = tg_rev_Ftest_weighted(y_data, y_lin_fit, y_quad_fit, w_fit);
         
         text(0.55, 0.94, sprintf('F = %.1f (Crit = %.1f)', faj, ftab), ...
              'Units', 'normalized', 'fontsize', 8, 'FontWeight', 'normal');
@@ -69,11 +95,14 @@ function fimf_plot_vsr(sitename, z_all, all_bed_z, v_all, all_int_vel, v_bed_com
 
     %% hax(2): Correlation Coefficient (Bottom Plot)
     set(gcf,'CurrentAxes',hax(2))
+    hold on;
     
-    plot(all_ampCor_mean', z_all, 'Color', [0.6 0.6 0.6 0.5], 'LineWidth', 0.5); hold on
-    patch([mean_ampCor-std_ampCor fliplr(mean_ampCor+std_ampCor)], ...
-          [z_all fliplr(z_all)], 'k', 'Facealpha', 0.2, 'Edgecolor', 'none'); hold on
-    plot(mean_ampCor, z_all, 'k', 'LineWidth', 1.5); hold on
+    if ~isempty(all_ampCor_mean)
+        plot(all_ampCor_mean', z_all, 'Color', [0.6 0.6 0.6 0.5], 'LineWidth', 0.5); 
+        patch([mean_ampCor-std_ampCor fliplr(mean_ampCor+std_ampCor)], ...
+              [z_all fliplr(z_all)], 'k', 'Facealpha', 0.2, 'Edgecolor', 'none');
+        plot(mean_ampCor, z_all, 'k', 'LineWidth', 1.5);
+    end
     
     xlim([0.75 1.01]); xlabel('Correlation coef');
 

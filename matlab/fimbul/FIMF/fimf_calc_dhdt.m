@@ -1,5 +1,4 @@
-function [v_int, v_bed] = fimf_calc_dhdt(dts, dts_bed, tind, opt_vel_method, opt_deriv_combine, opt_bed_source)
-d2y = 365.25; 
+function [v_int, v_bed] = fimf_calc_dhdt(dts, dts_bed, tind, d2y, opt_vel_method, opt_vel_method_deriv_bed, opt_vel_method_deriv_int, opt_bed_source)
 
 time = dts.time(tind);
 depth = dts.dhRange;
@@ -10,7 +9,7 @@ for j = 1:length(depth)
     valid = ~isnan(y) & ~isnan(time');
 
     if sum(valid) > 3
-        v_int(j) = calc_single_vel(time(valid), y(valid), opt_vel_method, opt_deriv_combine, d2y);
+        v_int(j) = calc_single_vel(time(valid), y(valid), opt_vel_method, opt_vel_method_deriv_int, d2y);
     end
 end
 
@@ -27,7 +26,7 @@ if ~isempty(dts_bed)
     valid = ~isnan(y_bed) & ~isnan(time_bed');
 
     if sum(valid) > 3
-        v_bed = calc_single_vel(time_bed(valid), y_bed(valid), opt_vel_method, opt_deriv_combine, d2y);
+        v_bed = calc_single_vel(time_bed(valid), y_bed(valid), opt_vel_method, opt_vel_method_deriv_bed, d2y);
     end
 end
 end

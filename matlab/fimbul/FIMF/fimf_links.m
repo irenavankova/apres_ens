@@ -20,7 +20,7 @@ folderName = fullfile([pname '/tseries/sites/other_data/Fimbul/fimbul_front/FIMF
 pppp = genpath(folderName);
 addpath(pppp)
 
-folderName = fullfile([pname '/Users/ivankova/Code/apres_ens/apres_ens/matlab/shared']);
+folderName = fullfile(['/Users/ivankova/Code/apres_ens/apres_ens/matlab/shared']);
 pppp = genpath(folderName);
 addpath(pppp)
 
