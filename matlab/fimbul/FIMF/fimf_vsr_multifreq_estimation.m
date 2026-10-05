@@ -19,6 +19,7 @@ function [vsr_lin, vsr_lin_se, vsr_quad, vsr_quad_se, v_bed, v_bed_se, z_bed_com
     addParameter(p, 't_start', [], @isnumeric); % Optional explicit start time
     addParameter(p, 't_end', [], @isnumeric);   % Optional explicit end time
     addParameter(p, 'hax', [], @(x) true);      % Optional axes handle for overwriting
+    addParameter(p, 'max_nan_threshold', 0.20, @isnumeric); % % Default 20% threshold ---
     parse(p, varargin{:});
 
     % Extract parameters
@@ -35,6 +36,7 @@ function [vsr_lin, vsr_lin_se, vsr_quad, vsr_quad_se, v_bed, v_bed_se, z_bed_com
     drnf_artefacts = p.Results.drnf_artefacts;
     plot_results = p.Results.plot_results;
     hax = p.Results.hax;
+    max_nan_threshold = p.Results.max_nan_threshold;
 
     % Determine bed data source
     is_bed_tp = strcmp(opt_bed_source, 'tp');
@@ -73,6 +75,12 @@ function [vsr_lin, vsr_lin_se, vsr_quad, vsr_quad_se, v_bed, v_bed_se, z_bed_com
         % Apply provided filtering (NaN exclusion)
         if ~isempty(iNaN_array)
             invalid_idx = intersect(tind, iNaN_array);
+            
+            % Abort if timeseries points exceed NaN threshold ---
+            if (length(invalid_idx) / length(tind)) > max_nan_threshold
+                continue; % Skips this window, leaving all_int_vel empty to trigger the NaN fallback
+            end
+            
             ct.dts_xcor.dh(invalid_idx, :) = NaN;
             if is_bed_tp
                 bed_struct.thickness(invalid_idx) = NaN;
@@ -149,6 +157,13 @@ function [vsr_lin, vsr_lin_se, vsr_quad, vsr_quad_se, v_bed, v_bed_se, z_bed_com
 
     %% VSR Calculation and Fitting
     [ind_fit, q_best, q_se, p_best, p_best_se] = fimf_calc_vsr(z_all', v_all', v_all_se', drnf_vsr);
+
+    % --- NEW: Catch NaN fits, assign NaN outputs, and early-exit to skip plotting ---
+    if any(isnan(q_best)) || any(isnan(p_best))
+        vsr_lin = NaN; vsr_lin_se = NaN; 
+        vsr_quad = NaN; vsr_quad_se = NaN;
+        return;
+    end
 
     %% Final Plot Generation and VSR calculation at bed depth
     [vsr_lin, vsr_lin_se, vsr_quad, vsr_quad_se] = fimf_plot_vsr(sitename, z_all, all_bed_z, v_all, all_int_vel, ...

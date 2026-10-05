@@ -126,6 +126,7 @@ function [vsr_lin, vsr_lin_se, vsr_quad, vsr_quad_se] = fimf_plot_vsr(sitename, 
     end
     linkaxes(hax,'y')
     xlim(hax(1), [-2 1.5])
+    %pause
 end
 
 function [y] = ct_tide_compute_quadratic(x,b)

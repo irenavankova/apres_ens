@@ -21,6 +21,14 @@ for j = 1:size(drnf,1)
     end
 end
 ind = unique(ind);
+
+% --- NEW: Return NaN if insufficient points for a 3-parameter fit ---
+if length(ind) < 3
+    b = [NaN; NaN; NaN];
+    b_se = [NaN; NaN; NaN];
+    return;
+end
+
 x = x(ind); x = reshape(x,length(x),1);
 y = y(ind); y = reshape(y,length(y),1);
 if ~isempty(w_in)
@@ -48,6 +56,15 @@ for j = 1:size(drnf,1)
     end
 end
 ind = unique(ind);
+
+% --- NEW: Return NaN if insufficient points for a 2-parameter fit ---
+if length(ind) < 2
+    p = [NaN; NaN];
+    se = [NaN; NaN];
+    rmse = NaN;
+    return;
+end
+
 x = x(ind); x = reshape(x,length(x),1);
 y = y(ind); y = reshape(y,length(y),1);
 if ~isempty(w_in)
