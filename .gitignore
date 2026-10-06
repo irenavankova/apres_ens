@@ -15,8 +15,10 @@
 # Logs
 *.log
 
-# Ignore netCDF files.
+# Ignore netCDF and MAT files and matlab backups.
 *.nc
+*.mat
+*.asv
 
 # Ignore python bytecode files
 *.pyc
@@ -47,4 +49,5 @@ Thumbs.db
 # idea folder
 .idea/
 .vscode/
-.asv
+
+

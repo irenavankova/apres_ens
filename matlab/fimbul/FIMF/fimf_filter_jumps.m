@@ -154,6 +154,8 @@ function [iNaN_array, y_bed_merged, y_int_merged, y_bed_std, y_bed_ci, y_int_std
         % (Comparison figures logic skipped for brevity here; identical to prior implementation)
     else % 'final' mode
         % --- MERGE ---[cite: 20]
+        opt_final_outlier = true;      
+        final_outlier_window = 31; %movmedian window
         bed_filters_final = {
             y_bed_bw, 'BW combo';
             y_bed_movmedian_int, 'MovMed int';
@@ -176,12 +178,37 @@ function [iNaN_array, y_bed_merged, y_int_merged, y_bed_std, y_bed_ci, y_int_std
         y_int_merged = y_int_raw;
         y_int_merged((size(selected_series_int, 2) - valid_count_int) >= 2) = NaN;
 
+        bed_filters_final = [bed_filters_final; {y_bed_merged, 'Merged'}];
+        int_filters_final = [int_filters_final; {y_int_merged, 'Merged'}];
+
+        if opt_final_outlier
+            % 1. Bed merged series
+            valid_idx_bed = find(~isnan(y_bed_merged)); % Identify indices of valid data
+            y_valid_bed = y_bed_merged(valid_idx_bed);  % Extract series without NaNs
+
+            % Detect outliers on the contiguous valid data
+            outliers_bed = isoutlier(y_valid_bed, 'movmedian', final_outlier_window);
+            y_valid_bed(outliers_bed) = NaN; % Replace detected outliers with NaNs
+
+            % Map back to original array (original NaNs remain untouched)
+            y_bed_merged(valid_idx_bed) = y_valid_bed; 
+
+            % 2. Internal merged series
+            valid_idx_int = find(~isnan(y_int_merged)); 
+            y_valid_int = y_int_merged(valid_idx_int);  
+
+            outliers_int = isoutlier(y_valid_int, 'movmedian', final_outlier_window);
+            y_valid_int(outliers_int) = NaN; 
+
+            y_int_merged(valid_idx_int) = y_valid_int; 
+        end
+
         % Find indices where both y_bed_merged and y_int_merged are NaN
         iNaN_array = find(isnan(y_bed_merged) & isnan(y_int_merged));
 
         % Create final comparison figures[cite: 20]
-        bed_filters_final = [bed_filters_final; {y_bed_merged, 'Merged'}];
-        int_filters_final = [int_filters_final; {y_int_merged, 'Merged'}];
+        bed_filters_final = [bed_filters_final; {y_bed_merged, 'Final'}];
+        int_filters_final = [int_filters_final; {y_int_merged, 'Final'}];
 
         if plot_results == true
             create_comparison_figure(bed_filters_final, t_bed, y_bed_raw, y_bed_std, y_bed_ci, ymax, 'Bed final');
