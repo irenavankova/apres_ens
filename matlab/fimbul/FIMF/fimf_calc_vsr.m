@@ -2,11 +2,11 @@ function [ind_fit, q_best, q_se, p_best, p_best_se] = fimf_calc_vsr(z_all, v_all
 w = 1 ./ v_all_se;
 w = w / max(w); 
 
-[ind_fit, q_best, q_se] = ct_tide_quadratic_fit_local(z_all, v_all, w, drnf_vsr, 'lsq_weighted');
-[~, p_best, ~, p_best_se] = ct_tide_line_fit_local(z_all, v_all, w, drnf_vsr, 'lsq_weighted');
+[ind_fit, q_best, q_se] = quadratic_fit_local(z_all, v_all, w, drnf_vsr, 'lsq_weighted');
+[~, p_best, ~, p_best_se] = line_fit_local(z_all, v_all, w, drnf_vsr, 'lsq_weighted');
 end
 
-function [ind,b,b_se] = ct_tide_quadratic_fit_local(x_in,y_in,w_in,drnf,opt_fit,startingVals)
+function [ind,b,b_se] = quadratic_fit_local(x_in,y_in,w_in,drnf,opt_fit,startingVals)
 if nargin < 6
     startingVals = [10e-3 10e-5 10e-2];  
 end
@@ -44,7 +44,7 @@ end
 b_se = sqrt(diag(CovB))'; 
 end
 
-function [ind,p,rmse,se] = ct_tide_line_fit_local(x_in,y_in,w_in,drnf,opt_fit)
+function [ind,p,rmse,se] = line_fit_local(x_in,y_in,w_in,drnf,opt_fit)
 x = x_in; y = y_in;
 ind = find(isnan(x) == 0);
 ind = intersect(ind,find(isnan(y) == 0));
