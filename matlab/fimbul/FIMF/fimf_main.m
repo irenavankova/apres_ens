@@ -16,7 +16,7 @@ d2y = 365.25;
 % Range and filtering
 dhRange_low = 20;
 dhRange_high = 80;
-opt_bed_source = 'tp'; % 'tp' (loads bed_tpq) or 'xcor' (loads bed_xcor)
+opt_bed_source = 'xcor'; % 'tp' (loads bed_tpq) or 'xcor' (loads bed_xcor)
 
 % Filter parameters
 Nbad = 6;
@@ -33,7 +33,7 @@ opt_vel_method_deriv_bed = 'mean';
 opt_vel_method_deriv_int = 'median'; 
 ylim_val = [0 170];
 ytick_dist = 20;
-drnf_vsr = [0 40; 124 4000];
+drnf_vsr = [0 20; 124 4000]; %[0 40; 124 4000]
 drnf_artefacts = [];
 max_nan_threshold = 0.5; % More than 20% bad -> do NaN
 
@@ -41,8 +41,8 @@ max_nan_threshold = 0.5; % More than 20% bad -> do NaN
 dt_window = 30; 
 dt_over = 1;
 
-%% Output and saving options
-opt_save_to_nc = true;
+% Output and saving options
+opt_save_to_nc = false;
 
 % Load all raw data once
 [bed_data, int_data, t_bed, t_int, f1] = fimf_load_matfiles(...
@@ -180,39 +180,76 @@ if opt_save_to_nc == true
     dim_bed = length(t_bed_out);
     dim_slide = length(vvel_t);
     
-    % Create and write variables
+    % --- Create and write variables with descriptions ---
+    
+    % 1. t_bed
     nccreate(nc_filename, 't_bed', 'Dimensions', {'time_bed', dim_bed});
     ncwrite(nc_filename, 't_bed', t_bed_out);
+    ncwriteatt(nc_filename, 't_bed', 'description', 'Time vector corresponding to high-resolution bed measurements');
+    ncwriteatt(nc_filename, 't_bed', 'units', 'datenum / days');
     
+    % 2. y_bed_merged_yr
     nccreate(nc_filename, 'y_bed_merged_yr', 'Dimensions', {'time_bed', dim_bed});
     ncwrite(nc_filename, 'y_bed_merged_yr', y_bed_merged_yr);
+    ncwriteatt(nc_filename, 'y_bed_merged_yr', 'description', 'Bed range (total thickness) rate of change timeseries');
+    ncwriteatt(nc_filename, 'y_bed_merged_yr', 'units', 'm/a');
     
+    % 3. y_bed_ci_yr
     nccreate(nc_filename, 'y_bed_ci_yr', 'Dimensions', {'time_bed', dim_bed});
     ncwrite(nc_filename, 'y_bed_ci_yr', y_bed_ci_yr);
+    ncwriteatt(nc_filename, 'y_bed_ci_yr', 'description', '95% Confidence interval for bed range (total thickness) rate of change');
+    ncwriteatt(nc_filename, 'y_bed_ci_yr', 'units', 'm/a');
     
+    % 4. vsr_lin
     nccreate(nc_filename, 'vsr_lin', 'Dimensions', {'scalar', 1});
     ncwrite(nc_filename, 'vsr_lin', vsr_lin);
+    ncwriteatt(nc_filename, 'vsr_lin', 'description', 'Time average strain thinning rate (assuming constant vertical strain rate profile) estimated over the whole time series');
+    ncwriteatt(nc_filename, 'vsr_lin', 'units', 'a^-1');
     
+    % 5. vsr_lin_se
     nccreate(nc_filename, 'vsr_lin_se', 'Dimensions', {'scalar', 1});
     ncwrite(nc_filename, 'vsr_lin_se', vsr_lin_se);
+    ncwriteatt(nc_filename, 'vsr_lin_se', 'description', 'Standard error of time average strain thinning rate (assuming constant vertical strain rate profile) over the whole time series');
+    ncwriteatt(nc_filename, 'vsr_lin_se', 'units', 'a^-1');
     
+    % 6. vvel_t
     nccreate(nc_filename, 'vvel_t', 'Dimensions', {'time_slide', dim_slide});
     ncwrite(nc_filename, 'vvel_t', vvel_t);
+    ncwriteatt(nc_filename, 'vvel_t', 'description', 'Mid-window timestamps for sliding window strain thinning rate timeseries estimates');
+    ncwriteatt(nc_filename, 'vvel_t', 'units', 'datenum / days');
     
+    % 7. vvel_vsr_lin
     nccreate(nc_filename, 'vvel_vsr_lin', 'Dimensions', {'time_slide', dim_slide});
     ncwrite(nc_filename, 'vvel_vsr_lin', vvel_vsr_lin);
+    ncwriteatt(nc_filename, 'vvel_vsr_lin', 'description', 'Strain thinning rate (assuming constant vertical strain rate profile) calculated over sliding window');
+    ncwriteatt(nc_filename, 'vvel_vsr_lin', 'units', 'a^-1');
     
+    % 8. vvel_vsr_lin_se
     nccreate(nc_filename, 'vvel_vsr_lin_se', 'Dimensions', {'time_slide', dim_slide});
     ncwrite(nc_filename, 'vvel_vsr_lin_se', vvel_vsr_lin_se);
+    ncwriteatt(nc_filename, 'vvel_vsr_lin_se', 'description', 'Standard error of sliding window strain thinning rate estimate');
+    ncwriteatt(nc_filename, 'vvel_vsr_lin_se', 'units', 'a^-1');
     
+    % 9. vvel_v_bed
     nccreate(nc_filename, 'vvel_v_bed', 'Dimensions', {'time_slide', dim_slide});
     ncwrite(nc_filename, 'vvel_v_bed', vvel_v_bed);
+    ncwriteatt(nc_filename, 'vvel_v_bed', 'description', 'Bed range rate of change estimated over sliding window');
+    ncwriteatt(nc_filename, 'vvel_v_bed', 'units', 'm/a');
     
+    % 10. vvel_v_bed_se
     nccreate(nc_filename, 'vvel_v_bed_se', 'Dimensions', {'time_slide', dim_slide});
     ncwrite(nc_filename, 'vvel_v_bed_se', vvel_v_bed_se);
+    ncwriteatt(nc_filename, 'vvel_v_bed_se', 'description', 'Standard error of sliding window bed range rate of change');
+    ncwriteatt(nc_filename, 'vvel_v_bed_se', 'units', 'm/a');
+    
+    % Optional: Global attributes for overall metadata
+    ncwriteatt(nc_filename, '/', 'site_name', sitename);
+    ncwriteatt(nc_filename, '/', 'creation_date', datestr(now));
     
     disp(['Results successfully saved to ', nc_filename]);
+
 end
+
 
 %% 4. Generate Final Plots
 fimf_plot_final_results(t_bed_out, y_bed_merged_yr, y_bed_ci_yr, vsr_lin, vsr_lin_se, ...

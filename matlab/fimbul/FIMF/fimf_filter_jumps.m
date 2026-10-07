@@ -46,10 +46,7 @@ function [iNaN_array, y_bed_merged, y_int_merged, y_bed_std, y_bed_ci, y_int_std
     if is_bed_tp
         dh_bed_1 = bed_data{1}.thickness(i1t:end);
     else
-        ct = int_data{1};
-        [~, ind] = min(abs(dhRange_low - ct.dts_uwrp.dhRange));
-        [~, ind2] = min(abs(dhRange_high - ct.dts_uwrp.dhRange));
-        dh_bed_1 = mean(ct.dts_xcor.dh(i1t:end, ind:ind2), 2);
+        dh_bed_1 = bed_data{1}.dh(i1t:end);
     end
     dh_bed_1 = dh_bed_1(:);
     len_dhdt = length(diff(dh_bed_1));
@@ -63,10 +60,7 @@ function [iNaN_array, y_bed_merged, y_int_merged, y_bed_std, y_bed_ci, y_int_std
         if is_bed_tp
             dh = bed_data{k}.thickness(i1t:end);
         else
-            ct = int_data{k};
-            [~, ind] = min(abs(dhRange_low - ct.dts_uwrp.dhRange));
-            [~, ind2] = min(abs(dhRange_high - ct.dts_uwrp.dhRange));
-            dh = mean(ct.dts_xcor.dh(i1t:end, ind:ind2), 2);
+            dh = bed_data{k}.dh(i1t:end);
         end
         dh = dh(:);
         dhdt = diff(dh) ./ diff(t_bed);
