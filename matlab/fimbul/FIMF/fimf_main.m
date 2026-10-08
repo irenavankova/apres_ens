@@ -33,23 +33,23 @@ opt_vel_method_deriv_bed = 'mean';
 opt_vel_method_deriv_int = 'median'; 
 ylim_val = [0 170];
 ytick_dist = 20;
-drnf_vsr = [0 20; 124 4000]; %[0 40; 124 4000]
+drnf_vsr = [0 40; 124 4000]; %[0 40; 124 4000]
 drnf_artefacts = [];
-max_nan_threshold = 0.5; % More than 20% bad -> do NaN
+max_nan_threshold = 0.5; % More than 50% bad -> do NaN
 
 % Sliding Window parameters (in days)
 dt_window = 30; 
 dt_over = 1;
 
 % Output and saving options
-opt_save_to_nc = false;
+opt_save_to_nc = true;
 
 % Load all raw data once
 [bed_data, int_data, t_bed, t_int, f1] = fimf_load_matfiles(...
     sitename, f0, fend, db, bw, i1t, dhRange_low, dhRange_high, opt_bed_source);
 
 % Run filter jumps in 'final' mode to get iNaN_array and uncertainties
-[iNaN_array, y_bed_merged, y_int_merged, y_bed_std, y_bed_ci, y_int_std, y_int_ci] = fimf_filter_jumps(...
+[iNaN_array, y_bed_merged, y_int_merged, y_bed_std, y_bed_se, y_int_std, y_int_se, y_bed_raw] = fimf_filter_jumps(...
     bed_data, int_data, t_bed, t_int, f1, ...
     'sitename', sitename, ...
     'bw', bw, ...
@@ -156,9 +156,10 @@ end
 %% 3. Format Data and Save to NetCDF
 % Convert arrays to consistent units and shapes for saving
 y_bed_merged_yr = y_bed_merged(:) * d2y;
-y_bed_ci_yr = y_bed_ci(:) * d2y;
+y_bed_se_yr = y_bed_se(:) * d2y;
 t_bed_out = t_bed(1:end-1); % Match length to difference vector
 t_bed_out = t_bed_out(:);
+y_bed_raw_yr = y_bed_raw(:) * d2y;
 
 % Sliding window vectors
 vvel_t = vvel.t(:);
@@ -187,6 +188,12 @@ if opt_save_to_nc == true
     ncwrite(nc_filename, 't_bed', t_bed_out);
     ncwriteatt(nc_filename, 't_bed', 'description', 'Time vector corresponding to high-resolution bed measurements');
     ncwriteatt(nc_filename, 't_bed', 'units', 'datenum / days');
+
+    % 2. y_bed_merged_yr
+    nccreate(nc_filename, 'y_bed_raw_yr', 'Dimensions', {'time_bed', dim_bed});
+    ncwrite(nc_filename, 'y_bed_raw_yr', y_bed_raw_yr);
+    ncwriteatt(nc_filename, 'y_bed_raw_yr', 'description', 'Bed range (total thickness) rate of change timeseries without outlier removal');
+    ncwriteatt(nc_filename, 'y_bed_raw_yr', 'units', 'm/a');
     
     % 2. y_bed_merged_yr
     nccreate(nc_filename, 'y_bed_merged_yr', 'Dimensions', {'time_bed', dim_bed});
@@ -194,11 +201,11 @@ if opt_save_to_nc == true
     ncwriteatt(nc_filename, 'y_bed_merged_yr', 'description', 'Bed range (total thickness) rate of change timeseries');
     ncwriteatt(nc_filename, 'y_bed_merged_yr', 'units', 'm/a');
     
-    % 3. y_bed_ci_yr
-    nccreate(nc_filename, 'y_bed_ci_yr', 'Dimensions', {'time_bed', dim_bed});
-    ncwrite(nc_filename, 'y_bed_ci_yr', y_bed_ci_yr);
-    ncwriteatt(nc_filename, 'y_bed_ci_yr', 'description', '95% Confidence interval for bed range (total thickness) rate of change');
-    ncwriteatt(nc_filename, 'y_bed_ci_yr', 'units', 'm/a');
+    % 3. y_bed_se_yr
+    nccreate(nc_filename, 'y_bed_se_yr', 'Dimensions', {'time_bed', dim_bed});
+    ncwrite(nc_filename, 'y_bed_se_yr', y_bed_se_yr);
+    ncwriteatt(nc_filename, 'y_bed_se_yr', 'description', 'Standard error for bed range (total thickness) rate of change');
+    ncwriteatt(nc_filename, 'y_bed_se_yr', 'units', 'm/a');
     
     % 4. vsr_lin
     nccreate(nc_filename, 'vsr_lin', 'Dimensions', {'scalar', 1});
@@ -250,7 +257,6 @@ if opt_save_to_nc == true
 
 end
 
-
 %% 4. Generate Final Plots
-fimf_plot_final_results(t_bed_out, y_bed_merged_yr, y_bed_ci_yr, vsr_lin, vsr_lin_se, ...
-                        vvel_t, vvel_vsr_lin, vvel_vsr_lin_se, vvel_v_bed, vvel_v_bed_se);
+fimf_plot_final_results(t_bed_out, y_bed_merged_yr, y_bed_se_yr, vsr_lin, vsr_lin_se, ...
+                        vvel_t, vvel_vsr_lin, vvel_vsr_lin_se, vvel_v_bed, vvel_v_bed_se, y_bed_raw_yr);

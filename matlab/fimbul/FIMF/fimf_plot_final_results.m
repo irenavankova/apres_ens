@@ -1,5 +1,5 @@
-function fimf_plot_final_results(t_bed, y_bed_merged_yr, y_bed_ci_yr, vsr_lin, vsr_lin_se, ...
-                                 vvel_t, vvel_vsr_lin, vvel_vsr_lin_se, vvel_v_bed, vvel_v_bed_se)
+function fimf_plot_final_results(t_bed, y_bed_merged_yr, y_bed_se_yr, vsr_lin, vsr_lin_se, ...
+                                 vvel_t, vvel_vsr_lin, vvel_vsr_lin_se, vvel_v_bed, vvel_v_bed_se, y_bed_raw_yr)
 % FIMF_PLOT_FINAL_RESULTS Generates final summary figures for VSR and Basal Melt Rate.
 
     % Ensure column vectors
@@ -44,14 +44,14 @@ function fimf_plot_final_results(t_bed, y_bed_merged_yr, y_bed_ci_yr, vsr_lin, v
 
     % Subplot 1
     subplot(2,1,1); h_fig1 = gca; hold on;
-    errorbar(t_bed, y_bed_merged_yr, y_bed_ci_yr, 'Color', [0.8 0.8 0.8], 'LineStyle', 'none', ...
-        'CapSize', 0, 'DisplayName', '95% CI (Raw)');
+    errorbar(t_bed, y_bed_merged_yr, y_bed_se_yr, 'Color', [0.8 0.8 0.8], 'LineStyle', 'none', ...
+        'CapSize', 0, 'DisplayName', 'Standard Error (Raw)');
     plot(t_bed, y_bed_merged_yr, '-', 'Color', [0.3 0.3 0.3], 'LineWidth', 1.5, ...
         'DisplayName', 'y\_bed\_merged'); 
     errorbar(vvel_t, vvel_v_bed, vvel_v_bed_se, 'r.-', 'MarkerSize', 12, 'LineWidth', 1, ...
         'DisplayName', 'Bed Rate of Change (Sliding)');
     datetick('x', 'mm/yy', 'keeplimits');
-    ylabel('Velocity (m/a)'); title('Basal Reflector Velocity Comparison');
+    ylabel('Velocity (m/a)'); title('Basal Reflector rate of change Comparison');
     legend('Location', 'best'); grid on;
 
     % Subplot 2
@@ -76,7 +76,7 @@ function fimf_plot_final_results(t_bed, y_bed_merged_yr, y_bed_ci_yr, vsr_lin, v
     errorbar(vvel_t, vvel_vsr_lin, vvel_vsr_lin_se, 'b.-', 'MarkerSize', 12, 'LineWidth', 1, ...
         'DisplayName', 'Linear VSR (Sliding)');
     datetick('x', 'mm/yy', 'keeplimits');
-    ylabel('VSR (a^{-1})'); title('Linear Vertical Strain Rate over Time');
+    ylabel('VSR (a^{-1})'); title('Depth-independent Vertical Strain Rate (VSR) evolution');
     legend('Location', 'best'); grid on;
     linkaxes(h_fig1, 'x');
 
@@ -85,13 +85,13 @@ function fimf_plot_final_results(t_bed, y_bed_merged_yr, y_bed_ci_yr, vsr_lin, v
     figure('Name', 'Basal Melt Rate Summary', 'Position', [150, 150, 800, 1000]);
 
     bmr_const = -1 * (y_bed_merged_yr - vsr_lin);
-    bmr_const_err = sqrt(y_bed_ci_yr.^2 + vsr_lin_se^2);
+    bmr_const_err = sqrt(y_bed_se_yr.^2 + vsr_lin_se^2);
 
     bmr_trend = -1 * (y_bed_merged_yr - vsr_trend);
-    bmr_trend_err = sqrt(y_bed_ci_yr.^2 + vsr_trend_se.^2);
+    bmr_trend_err = sqrt(y_bed_se_yr.^2 + vsr_trend_se.^2);
 
     bmr_interp = -1 * (y_bed_merged_yr - vsr_interp);
-    bmr_interp_err = sqrt(y_bed_ci_yr.^2 + vsr_se_interp.^2);
+    bmr_interp_err = sqrt(y_bed_se_yr.^2 + vsr_se_interp.^2);
 
     bmr_slide = -1 * (vvel_v_bed - vvel_vsr_lin);
     bmr_slide_err = sqrt(vvel_v_bed_se.^2 + vvel_vsr_lin_se.^2);
@@ -169,4 +169,31 @@ function fimf_plot_final_results(t_bed, y_bed_merged_yr, y_bed_ci_yr, vsr_lin, v
     datetick('x', 'mm/yy', 'keeplimits');
     ylabel('BMR (m/a)'); title('Basal Melt Rate Comparison Overlay');
     legend('Location', 'best'); grid on;
+
+    %% Figure 4: Final Basal Melt Rate Figure
+    figure('Name', 'Final Basal melt rate', 'Position', [200, 200, 1000, 500]); hold on;
+
+    c_noisy  = [1, 1, 1]*0.1; 
+    c_trend  = [0.466, 0.674, 0.188]; 
+    x_fill = [t_bed(:); flipud(t_bed(:))];
+
+    bmr_noisy = -1 * (y_bed_raw_yr - vsr_trend);
+
+    % 2. Linear Fit VSR
+    bmr_t_fill = bmr_trend(:); err_t_fill = bmr_trend_err(:);
+    nan_idx_t = isnan(bmr_t_fill) | isnan(err_t_fill);
+    err_t_fill(nan_idx_t) = 0; valid_t = ~nan_idx_t;
+    if any(nan_idx_t) && any(valid_t), bmr_t_fill(nan_idx_t) = interp1(t_bed(valid_t), bmr_t_fill(valid_t), t_bed(nan_idx_t), 'linear', 'extrap'); end
+    y_fill_trend = [(bmr_t_fill - err_t_fill); flipud(bmr_t_fill + err_t_fill)];
+
+    fill(x_fill, y_fill_trend, c_trend, 'EdgeColor', 'none', 'FaceAlpha', 0.5, 'HandleVisibility', 'off');
+
+    plot(t_bed, bmr_noisy, '-', 'Color', c_noisy, 'LineWidth', 1.5, 'DisplayName', 'BMR (End-point VSR)');
+    plot(t_bed, bmr_trend, '-', 'Color', c_trend, 'LineWidth', 1.5, 'DisplayName', 'BMR (Linear Fit VSR)');
+
+    datetick('x', 'mm/yy', 'keeplimits');
+    ylabel('BMR (m/a)'); title('Basal Melt Rate Comparison Overlay');
+    legend('Location', 'best'); grid on;
+    ylim([-3 15])
+
 end

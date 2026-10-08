@@ -1,12 +1,12 @@
-function [iNaN_array, y_bed_merged, y_int_merged, y_bed_std, y_bed_ci, y_int_std, y_int_ci] = fimf_filter_jumps(...
+function [iNaN_array, y_bed_merged, y_int_merged, y_bed_std, y_bed_se, y_int_std, y_int_se, y_bed_raw] = fimf_filter_jumps(...
     bed_data, int_data, t_bed, t_int, f1, varargin)
 % FIMF_FILTER_JUMPS Apply filters to dh/dt timeseries and identify jumps.
-%   [iNaN_array, y_bed_merged, y_int_merged, y_bed_std, y_bed_ci, y_int_std, y_int_ci] = FIMF_FILTER_JUMPS(...)
+%   [iNaN_array, y_bed_merged, y_int_merged, y_bed_std, y_bed_se, y_int_std, y_int_se] = FIMF_FILTER_JUMPS(...)
 %   Modes:
 %       - 'testing': Run comparison figures for all filters.
 %       - 'final': Run merge section and return iNaN_array and uncertainties.
 
-    % Parse optional parameters[cite: 20]
+    % Parse optional parameters
     p = inputParser;
     addParameter(p, 'sitename', 'FIMFY25_B', @ischar);
     addParameter(p, 'bw', 40, @isnumeric);
@@ -42,7 +42,7 @@ function [iNaN_array, y_bed_merged, y_int_merged, y_bed_std, y_bed_ci, y_int_std
     % Number of frequency bands
     N = length(f1);
 
-    % Initialize dhdtmat for bed and internal[cite: 20]
+    % Initialize dhdtmat for bed and internal
     if is_bed_tp
         dh_bed_1 = bed_data{1}.thickness(i1t:end);
     else
@@ -76,21 +76,20 @@ function [iNaN_array, y_bed_merged, y_int_merged, y_bed_std, y_bed_ci, y_int_std
         dhdtmat_int(:, k) = dhdt;
     end
 
-    % --- Compute raw, std, and confidence intervals ---[cite: 20]
+    % --- Compute raw, std, and standard errors ---
     y_bed_raw = mean(dhdtmat_bed, 2, 'omitnan');
     y_bed_std = std(dhdtmat_bed, [], 2, 'omitnan');
     y_int_raw = mean(dhdtmat_int, 2, 'omitnan');
     y_int_std = std(dhdtmat_int, [], 2, 'omitnan');
 
-    [~, ~, ci_bed] = ttest(dhdtmat_bed', 0, 'Alpha', 0.05);
-    y_bed_ci_lower = ci_bed(1, :)'; y_bed_ci_upper = ci_bed(2, :)';
-    y_bed_ci = (y_bed_ci_upper - y_bed_ci_lower) / 2;
+    % Calculate standard error using the count of valid (non-NaN) frequency bands
+    valid_N_bed = sum(~isnan(dhdtmat_bed), 2);
+    y_bed_se = y_bed_std ./ sqrt(valid_N_bed);
 
-    [~, ~, ci_int] = ttest(dhdtmat_int', 0, 'Alpha', 0.05);
-    y_int_ci_lower = ci_int(1, :)'; y_int_ci_upper = ci_int(2, :)';
-    y_int_ci = (y_int_ci_upper - y_int_ci_lower) / 2;
+    valid_N_int = sum(~isnan(dhdtmat_int), 2);
+    y_int_se = y_int_std ./ sqrt(valid_N_int);
 
-    % --- Apply all filters ---[cite: 20]
+    % --- Apply all filters ---
     % Bandwidth filter
     bw_med_filt_param = 5;
     [iNaN_bw, iNaN_bed_bw, iNaN_int_bw] = fimf_filter_bw(dhdtmat_bed, dhdtmat_int, t_bed, t_int, Nbad, bw_med_filt_param, y_bed_raw, y_bed_std, y_int_raw, y_int_std, ymax, plot_all_filters);
@@ -140,14 +139,13 @@ function [iNaN_array, y_bed_merged, y_int_merged, y_bed_std, y_bed_ci, y_int_std
 
     % --- Mode-specific execution ---
     if strcmp(mode, 'testing')
-        % Return empty arrays for non-testing returns[cite: 20]
+        % Return empty arrays for non-testing returns
         iNaN_array = [];
         y_bed_merged = [];
         y_int_merged = [];
         
-        % (Comparison figures logic skipped for brevity here; identical to prior implementation)
     else % 'final' mode
-        % --- MERGE ---[cite: 20]
+        % --- MERGE ---
         opt_final_outlier = true;      
         final_outlier_window = 31; %movmedian window
         bed_filters_final = {
@@ -200,19 +198,19 @@ function [iNaN_array, y_bed_merged, y_int_merged, y_bed_std, y_bed_ci, y_int_std
         % Find indices where both y_bed_merged and y_int_merged are NaN
         iNaN_array = find(isnan(y_bed_merged) & isnan(y_int_merged));
 
-        % Create final comparison figures[cite: 20]
+        % Create final comparison figures
         bed_filters_final = [bed_filters_final; {y_bed_merged, 'Final'}];
         int_filters_final = [int_filters_final; {y_int_merged, 'Final'}];
 
         if plot_results == true
-            create_comparison_figure(bed_filters_final, t_bed, y_bed_raw, y_bed_std, y_bed_ci, ymax, 'Bed final');
-            create_comparison_figure(int_filters_final, t_int, y_int_raw, y_int_std, y_int_ci, ymax, 'Int final');
+            create_comparison_figure(bed_filters_final, t_bed, y_bed_raw, y_bed_std, y_bed_se, ymax, 'Bed final');
+            create_comparison_figure(int_filters_final, t_int, y_int_raw, y_int_std, y_int_se, ymax, 'Int final');
         end
     end
 end
 
 % --- Helper Function: Create Comparison Figure ---
-function create_comparison_figure(filters, t, y_raw, y_std, y_ci, ymax, title_str)
+function create_comparison_figure(filters, t, y_raw, y_std, y_se, ymax, title_str)
     num_filters = size(filters, 1);
     Lwide = 1;
 
@@ -237,11 +235,11 @@ function create_comparison_figure(filters, t, y_raw, y_std, y_ci, ymax, title_st
     h = zeros(num_filters, 1);
     t_plot = t(1:end-1);
 
-    % Prepare vectors for polygon shading
-    ci_lower = y_raw - y_ci;
-    ci_upper = y_raw + y_ci;
+    % Prepare vectors for polygon shading using SE
+    se_lower = y_raw - y_se;
+    se_upper = y_raw + y_se;
     x_fill = [t_plot(:); flipud(t_plot(:))];
-    y_fill = [ci_lower(:); flipud(ci_upper(:))];
+    y_fill = [se_lower(:); flipud(se_upper(:))];
 
     for f = 1:num_filters
         j_idx = num_filters - f + 1;
@@ -251,7 +249,7 @@ function create_comparison_figure(filters, t, y_raw, y_std, y_ci, ymax, title_st
         y = filters{f, 1};
         label = filters{f, 2};
 
-        % Plot shaded confidence interval
+        % Plot shaded standard error
         fill(x_fill, y_fill, 0.5*[1 1 1], 'EdgeColor', 'none', 'FaceAlpha', 0.5); hold on;
 
         % Plot filtered data
