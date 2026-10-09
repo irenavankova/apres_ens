@@ -175,6 +175,7 @@ function fimf_plot_final_results(t_bed, y_bed_merged_yr, y_bed_se_yr, vsr_lin, v
 
     c_noisy  = [1, 1, 1]*0.1; 
     c_trend  = [0.466, 0.674, 0.188]; 
+    c_trend_err  = [0.850, 0.325, 0.098];
     x_fill = [t_bed(:); flipud(t_bed(:))];
 
     bmr_noisy = -1 * (y_bed_raw_yr - vsr_trend);
@@ -186,10 +187,10 @@ function fimf_plot_final_results(t_bed, y_bed_merged_yr, y_bed_se_yr, vsr_lin, v
     if any(nan_idx_t) && any(valid_t), bmr_t_fill(nan_idx_t) = interp1(t_bed(valid_t), bmr_t_fill(valid_t), t_bed(nan_idx_t), 'linear', 'extrap'); end
     y_fill_trend = [(bmr_t_fill - err_t_fill); flipud(bmr_t_fill + err_t_fill)];
 
-    fill(x_fill, y_fill_trend, c_trend, 'EdgeColor', 'none', 'FaceAlpha', 0.5, 'HandleVisibility', 'off');
+    fill(x_fill, y_fill_trend, c_trend_err, 'EdgeColor', 'none', 'FaceAlpha', 0.5, 'HandleVisibility', 'off');
 
-    plot(t_bed, bmr_noisy, '-', 'Color', c_noisy, 'LineWidth', 1.5, 'DisplayName', 'BMR (End-point VSR)');
-    plot(t_bed, bmr_trend, '-', 'Color', c_trend, 'LineWidth', 1.5, 'DisplayName', 'BMR (Linear Fit VSR)');
+    plot(t_bed, bmr_noisy, '-', 'Color', c_noisy, 'LineWidth', 1.0, 'DisplayName', 'BMR (End-point VSR)');
+    plot(t_bed, bmr_trend, '-', 'Color', c_trend, 'LineWidth', 1.0, 'DisplayName', 'BMR (Linear Fit VSR)');
 
     datetick('x', 'mm/yy', 'keeplimits');
     ylabel('BMR (m/a)'); title('Basal Melt Rate Comparison Overlay');
