@@ -91,11 +91,7 @@ function [vsr_lin, vsr_lin_se, vsr_quad, vsr_quad_se, v_bed, v_bed_se, z_bed_com
 
         % Store depth arrays
         z_all = ct.dts_xcor.dhRange;
-        if is_bed_tp
-            all_bed_z = cat(1, all_bed_z, bed_struct.x_input);
-        else
-            all_bed_z = cat(1, all_bed_z, bed_struct.dhRange);
-        end
+        all_bed_z = cat(1, all_bed_z, bed_struct.x_input);
 
         % Calculate Mean Velocities for this frequency instance
         [v_int, v_bed_k] = fimf_calc_dhdt(ct.dts_xcor, bed_struct, tind, d2y, opt_vel_method, opt_vel_method_deriv_bed, opt_vel_method_deriv_int, opt_bed_source);

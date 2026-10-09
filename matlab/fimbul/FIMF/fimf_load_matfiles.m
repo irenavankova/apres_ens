@@ -30,6 +30,9 @@ for k = 1:N
     else
         bed_file = [sname '_bed_xcor.mat'];
         bed_tmp = load(bed_file, 'bed_xcor');
+        bed_file_tp = [sname '_bed_tpq.mat'];
+        bed_tmp_tp = load(bed_file_tp, 'tp');
+        bed_tmp.bed_xcor.x_input = bed_tmp_tp.tp.x_input;
         bed_data{k} = bed_tmp.bed_xcor;
         if isempty(t_bed)
             t_bed = bed_data{k}.time(i1t:end);
