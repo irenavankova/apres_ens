@@ -76,7 +76,7 @@ function fimf_plot_final_results(t_bed, y_bed_merged_yr, y_bed_se_yr, vsr_lin, v
     errorbar(vvel_t, vvel_vsr_lin, vvel_vsr_lin_se, 'b.-', 'MarkerSize', 12, 'LineWidth', 1, ...
         'DisplayName', 'Linear VSR (Sliding)');
     datetick('x', 'mm/yy', 'keeplimits');
-    ylabel('VSR (a^{-1})'); title('Depth-independent Vertical Strain Rate (VSR) evolution');
+    ylabel('VSR (m/a)'); title('Depth-independent Vertical Strain Thinning Rate (VSR) evolution');
     legend('Location', 'best'); grid on;
     linkaxes(h_fig1, 'x');
 

@@ -5,6 +5,9 @@
 sitename = 'FIMFY25_B';
 nc_filename = sprintf('%s_BMR_results.nc', sitename);
 
+% nc file path
+nc_filename = '/Users/ivankova/Library/CloudStorage/GoogleDrive-irena.vanek@gmail.com/My Drive/Research/DOVuFRIS/Fris_Apres/code/tseries/sites/other_data/Fimbul/fimbul_front/FIMF/nc_files/FIMFY25_B_BMR_results.nc';
+
 % Check if file exists
 if ~isfile(nc_filename)
     error('File %s not found. Please run fimf_main first.', nc_filename);
