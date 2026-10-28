@@ -211,13 +211,13 @@ if opt_save_to_nc == true
     nccreate(nc_filename, 'vsr_lin', 'Dimensions', {'scalar', 1});
     ncwrite(nc_filename, 'vsr_lin', vsr_lin);
     ncwriteatt(nc_filename, 'vsr_lin', 'description', 'Time average strain thinning rate (assuming constant vertical strain rate profile) estimated over the whole time series');
-    ncwriteatt(nc_filename, 'vsr_lin', 'units', 'a^-1');
+    ncwriteatt(nc_filename, 'vsr_lin', 'units', 'm/a');
     
     % 5. vsr_lin_se
     nccreate(nc_filename, 'vsr_lin_se', 'Dimensions', {'scalar', 1});
     ncwrite(nc_filename, 'vsr_lin_se', vsr_lin_se);
     ncwriteatt(nc_filename, 'vsr_lin_se', 'description', 'Standard error of time average strain thinning rate (assuming constant vertical strain rate profile) over the whole time series');
-    ncwriteatt(nc_filename, 'vsr_lin_se', 'units', 'a^-1');
+    ncwriteatt(nc_filename, 'vsr_lin_se', 'units', 'm/a');
     
     % 6. vvel_t
     nccreate(nc_filename, 'vvel_t', 'Dimensions', {'time_slide', dim_slide});
@@ -229,13 +229,13 @@ if opt_save_to_nc == true
     nccreate(nc_filename, 'vvel_vsr_lin', 'Dimensions', {'time_slide', dim_slide});
     ncwrite(nc_filename, 'vvel_vsr_lin', vvel_vsr_lin);
     ncwriteatt(nc_filename, 'vvel_vsr_lin', 'description', 'Strain thinning rate (assuming constant vertical strain rate profile) calculated over sliding window');
-    ncwriteatt(nc_filename, 'vvel_vsr_lin', 'units', 'a^-1');
+    ncwriteatt(nc_filename, 'vvel_vsr_lin', 'units', 'm/a');
     
     % 8. vvel_vsr_lin_se
     nccreate(nc_filename, 'vvel_vsr_lin_se', 'Dimensions', {'time_slide', dim_slide});
     ncwrite(nc_filename, 'vvel_vsr_lin_se', vvel_vsr_lin_se);
     ncwriteatt(nc_filename, 'vvel_vsr_lin_se', 'description', 'Standard error of sliding window strain thinning rate estimate');
-    ncwriteatt(nc_filename, 'vvel_vsr_lin_se', 'units', 'a^-1');
+    ncwriteatt(nc_filename, 'vvel_vsr_lin_se', 'units', 'm/a');
     
     % 9. vvel_v_bed
     nccreate(nc_filename, 'vvel_v_bed', 'Dimensions', {'time_slide', dim_slide});
